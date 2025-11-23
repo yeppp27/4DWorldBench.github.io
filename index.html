@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>4DWorldBench: A Comprehensive Evaluation Framework</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    
+    <!-- Babel for JSX execution in browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS for styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Custom Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .scroll-mt-20 { scroll-margin-top: 5rem; }
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+        
+        /* Custom scrollbar for tables */
+        .custom-scrollbar::-webkit-scrollbar {
+            height: 8px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900">
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // --- Icons ---
+        const IconWrapper = ({ children, className }) => (
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+                {children}
+            </svg>
+        );
+
+        const Trophy = ({ className }) => <IconWrapper className={className}><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></IconWrapper>;
+        const FileText = ({ size }) => <IconWrapper className={`w-${size ? size/4 : 6} h-${size ? size/4 : 6}`}><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></IconWrapper>;
+        const Github = ({ size }) => <IconWrapper className={`w-${size ? size/4 : 6} h-${size ? size/4 : 6}`}><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></IconWrapper>;
+        const Database = ({ size }) => <IconWrapper className={`w-${size ? size/4 : 6} h-${size ? size/4 : 6}`}><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></IconWrapper>;
+        const ChevronDown = ({ className }) => <IconWrapper className={className}><polyline points="6 9 12 15 18 9"/></IconWrapper>;
+        const ChevronUp = ({ className }) => <IconWrapper className={className}><polyline points="18 15 12 9 6 15"/></IconWrapper>;
+        const Layout = ({ className }) => <IconWrapper className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><line x1="3" x2="21" y1="9" y2="9"/><line x1="9" x2="9" y1="21" y2="9"/></IconWrapper>;
+        const Box = ({ className }) => <IconWrapper className={className}><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" x2="12" y1="22.08" y2="12"/></IconWrapper>;
+        const Activity = ({ className }) => <IconWrapper className={className}><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></IconWrapper>;
+        const Layers = ({ className }) => <IconWrapper className={className}><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></IconWrapper>;
+        const CheckCircle2 = ({ className }) => <IconWrapper className={className}><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="m9 12 2 2 4-4"/></IconWrapper>;
+        const Minus = ({ className }) => <IconWrapper className={className}><path d="M5 12h14"/></IconWrapper>;
+        const AlertCircle = ({ className }) => <IconWrapper className={className}><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></IconWrapper>;
+
+        // --- Components ---
+
+        const LeaderboardTable = ({ title, data, columns, defaultSort = 'overall' }) => {
+            const [sortConfig, setSortConfig] = useState({ key: defaultSort, direction: 'desc' });
+
+            // Winner logic: simply highest overall score
+            const getWinner = () => {
+                if (!data.length) return null;
+                return data.reduce((prev, current) => 
+                    (parseFloat(prev.overall) > parseFloat(current.overall)) ? prev : current
+                );
+            };
+            const winner = getWinner();
+
+            const sortedData = [...data].sort((a, b) => {
+                // Handle split values like "0.498+0.480" by taking the first part for sorting
+                const getVal = (item, key) => {
+                    let val = item[key];
+                    if (typeof val === 'string' && val.includes('+')) {
+                        val = val.split('+')[0];
+                    }
+                    return parseFloat(val) || 0;
+                };
+
+                const valA = getVal(a, sortConfig.key);
+                const valB = getVal(b, sortConfig.key);
+
+                if (valA < valB) return sortConfig.direction === 'ascending' ? -1 : 1;
+                if (valA > valB) return sortConfig.direction === 'ascending' ? 1 : -1;
+                return 0;
+            });
+
+            const requestSort = (key) => {
+                let direction = 'ascending';
+                if (sortConfig.key === key && sortConfig.direction === 'ascending') {
+                    direction = 'descending';
+                }
+                setSortConfig({ key, direction });
+            };
+
+            const getSortIcon = (key) => {
+                if (sortConfig.key !== key) return <div className="w-3 h-3 ml-1 inline-block opacity-20">↕</div>;
+                return sortConfig.direction === 'ascending' 
+                ? <ChevronUp className="w-3 h-3 ml-1 inline-block" /> 
+                : <ChevronDown className="w-3 h-3 ml-1 inline-block" />;
+            };
+
+            return (
+                <div className="mb-8 overflow-hidden bg-white shadow-lg rounded-xl border border-gray-200">
+                    <div className="bg-slate-50 px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 className="text-lg font-bold text-slate-800">{title}</h3>
+                        <span className="text-xs text-gray-500 italic hidden sm:block">Click headers to sort</span>
+                    </div>
+                    <div className="overflow-x-auto custom-scrollbar">
+                        <table className="w-full text-sm text-left border-collapse">
+                            <thead className="text-xs text-gray-700 uppercase bg-slate-100 border-b">
+                                <tr>
+                                    <th scope="col" className="px-4 py-3 font-bold sticky left-0 bg-slate-100 z-10 min-w-[180px] shadow-[2px_0_5px_-2px_rgba(0,0,0,0.1)]">Model</th>
+                                    {columns.map((col, idx) => (
+                                        <th 
+                                            key={col.key || idx}
+                                            scope="col" 
+                                            className={`px-3 py-3 cursor-pointer hover:bg-slate-200 transition-colors whitespace-nowrap text-center ${col.key === 'overall' ? 'font-bold text-blue-700 bg-blue-50' : ''}`}
+                                            onClick={() => col.key && requestSort(col.key)}
+                                            title={col.tooltip}
+                                        >
+                                            <div className="flex items-center justify-center gap-1">
+                                                {col.label}
+                                                {col.key && getSortIcon(col.key)}
+                                            </div>
+                                            {col.subLabel && <div className="text-[10px] text-gray-500 font-normal normal-case">{col.subLabel}</div>}
+                                        </th>
+                                    ))}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {sortedData.map((row, index) => {
+                                    const isWinner = winner && winner.name === row.name;
+                                    return (
+                                        <tr key={index} className={`border-b hover:bg-gray-50 ${isWinner ? 'bg-yellow-50/30' : ''}`}>
+                                            <td className="px-4 py-3 font-medium text-gray-900 sticky left-0 bg-white hover:bg-gray-50 z-10 border-r shadow-[2px_0_5px_-2px_rgba(0,0,0,0.05)]">
+                                                <div className="flex items-center gap-2">
+                                                    {row.name}
+                                                    {isWinner && <Trophy className="w-4 h-4 text-yellow-500 fill-yellow-500 flex-shrink-0" />}
+                                                </div>
+                                            </td>
+                                            {columns.map((col, cIdx) => (
+                                                <td key={cIdx} className={`px-3 py-3 text-center whitespace-nowrap ${col.key === 'overall' ? 'font-bold text-blue-700 bg-blue-50/50' : 'text-gray-600'}`}>
+                                                    {row[col.key] !== undefined ? row[col.key] : '-'}
+                                                </td>
+                                            ))}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            );
+        };
+
+        const FeatureCard = ({ icon: Icon, title, description, color }) => (
+            <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                <div className={`w-12 h-12 rounded-lg ${color} flex items-center justify-center mb-4`}>
+                <Icon className="w-6 h-6 text-white" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-800 mb-2">{title}</h3>
+                <p className="text-gray-600 text-sm leading-relaxed">{description}</p>
+            </div>
+        );
+
+        const ComparisonStatus = ({ status }) => {
+            if (status === 'yes') return <CheckCircle2 className="w-5 h-5 text-green-500 mx-auto" />;
+            if (status === 'partial') return <AlertCircle className="w-5 h-5 text-yellow-500 mx-auto" />;
+            return <Minus className="w-5 h-5 text-gray-300 mx-auto" />;
+        };
+
+        const App = () => {
+            const [activeTab, setActiveTab] = useState('table3');
+
+            // --- DATASETS ---
+
+            // Table 3: Image-to-4D
+            const table3ImageData = [
+                { 
+                    name: 'CamI2V', 
+                    spatial: '0.419+0.524', temporal: '0.668', texture: '0.700', 
+                    event: '0.397', scene: '0.954', attr: '0.922', rel: '0.845', align_motion: '0.756',
+                    dynamics: '0.650', optics: '0.738', thermal: '0.629',
+                    viewpoint: '0.701', cons_motion: '0.553+0.816', style: '0.887',
+                    overall: '0.697' 
+                },
+                { 
+                    name: 'DiffusionAsShader', 
+                    spatial: '0.509+0.522', temporal: '0.790', texture: '0.715', 
+                    event: '0.400', scene: '0.965', attr: '0.963', rel: '0.804', align_motion: '0.781',
+                    dynamics: '0.688', optics: '0.850', thermal: '0.763',
+                    viewpoint: '0.908', cons_motion: '0.874+0.750', style: '0.918',
+                    overall: '0.763' 
+                }
+            ];
+
+            // Table 3: Video-to-4D
+            const table3VideoData = [
+                { 
+                    name: 'EX-4D', 
+                    spatial: '0.305+0.409', temporal: '0.356', texture: '0.616', 
+                    event: '0.615', scene: '0.805', attr: '0.792', rel: '0.879', align_motion: '0.869',
+                    dynamics: '0.421', optics: '0.627', thermal: '0.600',
+                    viewpoint: '0.266', cons_motion: '0.384+0.811', style: '0.827',
+                    overall: '0.599' 
+                },
+                { 
+                    name: 'ReCamMaster', 
+                    spatial: '0.215+0.401', temporal: '0.394', texture: '0.636', 
+                    event: '0.573', scene: '0.757', attr: '0.673', rel: '0.811', align_motion: '0.796',
+                    dynamics: '0.680', optics: '0.714', thermal: '0.773',
+                    viewpoint: '0.862', cons_motion: '0.859+0.834', style: '0.985',
+                    overall: '0.685' 
+                },
+                { 
+                    name: 'TrajectoryCrafter', 
+                    spatial: '0.492+0.434', temporal: '0.560', texture: '0.646', 
+                    event: '0.639', scene: '0.862', attr: '0.766', rel: '0.913', align_motion: '0.856',
+                    dynamics: '0.671', optics: '0.667', thermal: '0.636',
+                    viewpoint: '0.362', cons_motion: '0.454+0.883', style: '0.878',
+                    overall: '0.670' 
+                },
+                { 
+                    name: 'Vista', 
+                    spatial: '0.216+0.402', temporal: '0.397', texture: '0.657', 
+                    event: '0.405', scene: '0.686', attr: '0.516', rel: '0.698', align_motion: '0.607',
+                    dynamics: '0.607', optics: '0.613', thermal: '0.593',
+                    viewpoint: '0.921', cons_motion: '0.942+0.622', style: '0.986',
+                    overall: '0.617' 
+                }
+            ];
+
+            // Table 3: Text-to-4D
+            const table3TextData = [
+                { 
+                    name: '4Dfy', 
+                    spatial: '0.336+0.469', temporal: '0.442', texture: '0.569', 
+                    event: '0.566', scene: '0.505', attr: '0.326', rel: '0.553', align_motion: '0.545',
+                    dynamics: '0.265', optics: '0.417', thermal: '0.200',
+                    viewpoint: '0.741', cons_motion: '0.934+0.705', style: '0.993',
+                    overall: '0.535' 
+                },
+                { 
+                    name: 'dreamin4D', 
+                    spatial: '0.234+0.396', temporal: '0.181', texture: '0.655', 
+                    event: '0.409', scene: '0.576', attr: '0.390', rel: '0.558', align_motion: '0.416',
+                    dynamics: '0.235', optics: '0.238', thermal: '0.150',
+                    viewpoint: '0.612', cons_motion: '0.761+0.360', style: '0.850',
+                    overall: '0.439' 
+                }
+            ];
+
+            // Table 4 Data Split: Image-to-3D
+            const table4ImageData = [
+                { name: 'SyncDreamer (Obj)', spatial: '0.498+0.480', temporal: '0.460', texture: '0.622', scene: '0.772', attr: '0.864', rel: '0.895', view: '0.117', style: '0.943', overall: '0.628' },
+                { name: 'V3D (Obj)', spatial: '0.496+0.439', temporal: '0.669', texture: '0.670', scene: '0.788', attr: '0.920', rel: '0.872', view: '0.470', style: '0.904', overall: '0.692' },
+                { name: 'MotionCtrl (Sce)', spatial: '0.424+0.508', temporal: '0.738', texture: '0.710', scene: '0.927', attr: '0.926', rel: '0.837', view: '0.970', style: '0.888', overall: '0.770' },
+                { name: 'Viewcrafter (Sce)', spatial: '0.497+0.552', temporal: '0.797', texture: '0.715', scene: '0.972', attr: '0.954', rel: '0.863', view: '0.801', style: '0.698', overall: '0.761' },
+                { name: 'FlexWorld (Sce)', spatial: '0.437+0.508', temporal: '0.745', texture: '0.701', scene: '0.944', attr: '0.953', rel: '0.813', view: '0.931', style: '0.780', overall: '0.757' },
+            ];
+
+            // Table 4 Data Split: Text-to-3D
+            const table4TextData = [
+                { name: 'Director3D', spatial: '0.180+0.511', temporal: '0.601', texture: '0.677', scene: '0.737', attr: '0.813', rel: '0.541', view: '0.991', style: '0.992', overall: '0.671' },
+                { name: 'Text2NeRF', spatial: '0.271+0.514', temporal: '0.754', texture: '0.677', scene: '0.798', attr: '0.805', rel: '0.605', view: '0.988', style: '0.878', overall: '0.699' },
+                { name: 'Step1x-to-3D', spatial: '0.455+0.387', temporal: '0.828', texture: '0.596', scene: '0.423', attr: '0.605', rel: '0.490', view: '0.806', style: '0.971', overall: '0.618' },
+                { name: 'WonderJourney', spatial: '0.284+0.449', temporal: '0.657', texture: '0.703', scene: '0.821', attr: '0.855', rel: '0.683', view: '0.774', style: '0.602', overall: '0.619' },
+            ];
+
+            const comparisonData = [
+                { name: 'WorldScore', modalities: 'Text', q: 'yes', a: 'partial', p: 'no', c: 'yes' },
+                { name: 'VBench', modalities: 'Text', q: 'yes', a: 'yes', p: 'partial', c: 'no' },
+                { name: 'VBench2.0', modalities: 'Text / Image', q: 'yes', a: 'yes', p: 'partial', c: 'no' },
+                { name: 'PhyGenBench', modalities: 'Text', q: 'no', a: 'no', p: 'yes', c: 'no' },
+                { name: '4DWorldBench (ours)', modalities: 'Text / Image / Video', q: 'yes', a: 'yes', p: 'yes', c: 'yes', isOurs: true },
+            ];
+
+            // --- Column Definitions ---
+            const table3Columns = [
+                { key: 'spatial', label: 'Spatial', subLabel: 'Perceptual' },
+                { key: 'temporal', label: 'Temporal', subLabel: 'Perceptual' },
+                { key: 'texture', label: '3D Texture', subLabel: 'Perceptual' },
+                { key: 'event', label: 'Event', subLabel: 'Alignment' },
+                { key: 'scene', label: 'Scene', subLabel: 'Alignment' },
+                { key: 'attr', label: 'Attribute', subLabel: 'Alignment' },
+                { key: 'rel', label: 'Relationship', subLabel: 'Alignment' },
+                { key: 'align_motion', label: 'Motion', subLabel: 'Alignment' },
+                { key: 'dynamics', label: 'Dynamics', subLabel: 'Physics' },
+                { key: 'optics', label: 'Optics', subLabel: 'Physics' },
+                { key: 'thermal', label: 'Thermal', subLabel: 'Physics' },
+                { key: 'viewpoint', label: 'Viewpoint', subLabel: 'Consistency' },
+                { key: 'cons_motion', label: 'Motion', subLabel: 'Consistency' },
+                { key: 'style', label: 'Style', subLabel: 'Consistency' },
+                { key: 'overall', label: 'Overall' },
+            ];
+
+            return (
+                <div className="min-h-screen bg-slate-50 font-sans text-slate-900">
+                {/* Hero Section */}
+                <div className="bg-gradient-to-b from-white to-slate-100 border-b border-gray-200 pt-16 pb-12">
+                    <div className="max-w-5xl mx-auto px-4 text-center">
+                    <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight mb-4 bg-clip-text text-transparent bg-gradient-to-r from-blue-700 to-indigo-600">
+                        4DWorldBench
+                    </h1>
+                    <h2 className="text-xl md:text-2xl font-medium text-gray-600 mb-8 max-w-3xl mx-auto">
+                        A Comprehensive Evaluation Framework for 3D/4D World Generation Models
+                    </h2>
+                    
+                    <div className="flex flex-wrap justify-center gap-4">
+                        <button className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-full hover:bg-slate-700 transition-colors shadow-lg shadow-slate-200">
+                        <FileText size={18} />
+                        <span>Paper</span>
+                        </button>
+                        <button className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-full hover:bg-slate-700 transition-colors shadow-lg shadow-slate-200">
+                        <Github size={18} />
+                        <span>Code (Coming Soon)</span>
+                        </button>
+                        <button className="flex items-center gap-2 px-6 py-2.5 bg-slate-800 text-white rounded-full hover:bg-slate-700 transition-colors shadow-lg shadow-slate-200">
+                        <Database size={18} />
+                        <span>Dataset</span>
+                        </button>
+                    </div>
+                    </div>
+                </div>
+
+                <div className="max-w-5xl mx-auto px-4 py-12 space-y-16">
+                    
+                    {/* Abstract */}
+                    <section>
+                    <h3 className="text-2xl font-bold mb-6 text-slate-800 border-l-4 border-blue-600 pl-4">Abstract</h3>
+                    <p className="text-lg leading-relaxed text-gray-700 text-justify mb-8">
+                        World Generation Models are emerging as a cornerstone of next-generation multimodal intelligence systems. 
+                        Unlike traditional 2D visual generation, World Models aim to construct realistic, dynamic, and physically consistent 3D/4D worlds from images, videos, or text. 
+                        However, prior benchmarks emphasize different evaluation dimensions and lack a unified assessment of world-realism capability. 
+                        To systematically evaluate World Models, we introduce the <strong>4DWorldBench</strong>, which measures models across four key dimensions: 
+                        <strong>Perceptual Quality</strong>, <strong>Condition-4D Alignment</strong>, <strong>Physical Realism</strong>, and <strong>4D Consistency</strong>. 
+                        The benchmark covers tasks such as Image-to-3D/4D, Video-to-4D, and Text-to-3D/4D. Beyond these, we innovatively introduce adaptive conditioning across multiple modalities, which not only integrates but also extends traditional evaluation paradigms.
+                    </p>
+
+                    {/* Overview Diagram */}
+                    <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-lg">
+                        <img 
+                        src="framework.png" 
+                        alt="4DWorldBench Framework Overview" 
+                        className="w-full h-auto rounded-lg"
+                        onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://placehold.co/1200x600/e2e8f0/475569?text=Figure+1:+Framework+Overview";
+                        }}
+                        />
+                        <p className="mt-3 text-sm text-gray-500 text-center px-4 pb-2">
+                        <strong>Figure 1. Overview of the 4DWorldBench framework.</strong> The benchmark evaluates generation quality across four key dimensions: 4D consistency, condition alignment, perceptual quality, and physical realism.
+                        </p>
+                    </div>
+                    </section>
+
+                    {/* Features / Dimensions */}
+                    <section>
+                    <h3 className="text-2xl font-bold mb-8 text-slate-800 border-l-4 border-blue-600 pl-4">Evaluation Dimensions</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+                        <FeatureCard 
+                        icon={Layout} 
+                        color="bg-purple-500"
+                        title="Perceptual Quality" 
+                        description="Evaluates spatial fidelity, temporal coherence, and 3D texture realism to ensure high-fidelity visual output."
+                        />
+                        <FeatureCard 
+                        icon={Box} 
+                        color="bg-blue-500"
+                        title="Condition-4D Alignment" 
+                        description="Measures consistency with input prompts, including event control, scene layout, attributes, and motion dynamics."
+                        />
+                        <FeatureCard 
+                        icon={Activity} 
+                        color="bg-green-500"
+                        title="Physical Realism" 
+                        description="Assesses adherence to laws of nature (Dynamics, Optics, Thermal) using LLM-based reasoning."
+                        />
+                        <FeatureCard 
+                        icon={Layers} 
+                        color="bg-orange-500"
+                        title="4D Consistency" 
+                        description="Quantifies spatial-temporal stability including viewpoint consistency, motion coherence, and style retention."
+                        />
+                    </div>
+
+                    {/* Physical Evaluation Pipeline Diagram */}
+                    <div className="mt-8">
+                        <h4 className="text-xl font-bold mb-4 text-slate-700">Physical Realism Evaluation Pipeline</h4>
+                        <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-lg">
+                        <img 
+                            src="phyeval.png" 
+                            alt="Physical Realism Evaluation Pipeline" 
+                            className="w-full h-auto rounded-lg"
+                            onError={(e) => {
+                            e.target.onerror = null;
+                            e.target.src = "https://placehold.co/1200x500/e2e8f0/475569?text=Figure+5:+Physical+Realism+Pipeline";
+                            }}
+                        />
+                        <p className="mt-3 text-sm text-gray-500 text-center px-4 pb-2">
+                            <strong>Figure 5. Pipeline of the Physical Realism Evaluation.</strong> The framework first unifies text, image, and video conditions into a common textual form, then uses an LLM to adaptively select relevant physical dimensions and generate diagnostic questions.
+                        </p>
+                        </div>
+                    </div>
+                    </section>
+
+                    {/* Comparison with Existing Benchmarks */}
+                    <section>
+                    <h3 className="text-2xl font-bold mb-8 text-slate-800 border-l-4 border-blue-600 pl-4">Comparison with Existing Benchmarks</h3>
+                    <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+                        <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-center">
+                            <thead className="bg-slate-100 border-b border-gray-200 text-xs uppercase text-gray-600">
+                            <tr>
+                                <th className="px-6 py-4 font-bold text-left w-1/4">Benchmark</th>
+                                <th className="px-6 py-4 font-medium">Condition Modalities</th>
+                                <th className="px-4 py-4 font-medium" title="Perceptual Quality">Q</th>
+                                <th className="px-4 py-4 font-medium" title="Condition Alignment">A</th>
+                                <th className="px-4 py-4 font-medium" title="Physical Realism">P</th>
+                                <th className="px-4 py-4 font-medium" title="4D Consistency">C</th>
+                            </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                            {comparisonData.map((item, idx) => (
+                                <tr 
+                                key={idx} 
+                                className={`hover:bg-gray-50 transition-colors ${item.isOurs ? 'bg-blue-50/60 ring-1 ring-blue-100' : ''}`}
+                                >
+                                <td className="px-6 py-4 text-left font-medium text-slate-900 flex items-center gap-2">
+                                    {item.name}
+                                    {item.isOurs && <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">Ours</span>}
+                                </td>
+                                <td className="px-6 py-4 text-slate-600">{item.modalities}</td>
+                                <td className="px-4 py-4"><ComparisonStatus status={item.q} /></td>
+                                <td className="px-4 py-4"><ComparisonStatus status={item.a} /></td>
+                                <td className="px-4 py-4"><ComparisonStatus status={item.p} /></td>
+                                <td className="px-4 py-4"><ComparisonStatus status={item.c} /></td>
+                                </tr>
+                            ))}
+                            </tbody>
+                        </table>
+                        </div>
+                        <div className="bg-slate-50 px-6 py-4 text-xs text-gray-500 border-t border-gray-200 flex flex-wrap gap-4 items-center justify-between">
+                        <div className="flex gap-4">
+                            <span className="flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> Fully Supported</span>
+                            <span className="flex items-center gap-1"><AlertCircle className="w-4 h-4 text-yellow-500" /> Partially Supported</span>
+                            <span className="flex items-center gap-1"><Minus className="w-4 h-4 text-gray-300" /> Not Supported</span>
+                        </div>
+                        <div>
+                            <strong>Q</strong>: Perceptual Quality, <strong>A</strong>: Condition Alignment, <strong>P</strong>: Physical Realism, <strong>C</strong>: 4D Consistency
+                        </div>
+                        </div>
+                    </div>
+                    <p className="mt-6 text-gray-700 leading-relaxed text-justify">
+                        Previous benchmarks often focus on limited modalities or specific evaluation dimensions. 
+                        For instance, <strong>WorldScore</strong> lacks comprehensive physical realism evaluation, while <strong>PhyGenBench</strong> focuses purely on physics but neglects other critical generative aspects. 
+                        <strong>VBench</strong> series primarily target video generation without full support for 4D consistency or comprehensive 3D physics.
+                        <strong> 4DWorldBench</strong> stands out as the unified framework that supports <strong>Text, Image, and Video</strong> modalities while systematically evaluating all four critical dimensions: 
+                        Quality, Alignment, Physical Realism, and Consistency.
+                    </p>
+                    </section>
+
+                    {/* Leaderboard */}
+                    <section id="leaderboard" className="scroll-mt-20">
+                    <div className="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+                        <h3 className="text-2xl font-bold text-slate-800 border-l-4 border-blue-600 pl-4">Leaderboard</h3>
+                        
+                        {/* Tab Switcher */}
+                        <div className="flex bg-slate-200 p-1 rounded-lg">
+                        <button 
+                            onClick={() => setActiveTab('table3')}
+                            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'table3' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                            4D Generation (Table 3)
+                        </button>
+                        <button 
+                            onClick={() => setActiveTab('table4')}
+                            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'table4' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+                        >
+                            3D Generation (Table 4)
+                        </button>
+                        </div>
+                    </div>
+
+                    <p className="text-gray-600 mb-6 bg-blue-50 p-4 rounded-lg border border-blue-100 text-sm">
+                        🏆 Indicates the best performing model in its respective input category (Overall Score). 
+                        <br className="hidden sm:block"/>
+                        Results are based on standard 4DWorldBench protocols. Click table headers to sort by specific metrics.
+                    </p>
+
+                    {activeTab === 'table3' && (
+                        <div className="space-y-8">
+                            <LeaderboardTable 
+                                title="Image-to-4D Models"
+                                data={table3ImageData}
+                                columns={table3Columns}
+                            />
+                            <LeaderboardTable 
+                                title="Video-to-4D Models"
+                                data={table3VideoData}
+                                columns={table3Columns}
+                            />
+                            <LeaderboardTable 
+                                title="Text-to-4D Models"
+                                data={table3TextData}
+                                columns={table3Columns}
+                            />
+                        </div>
+                    )}
+
+                    {activeTab === 'table4' && (
+                        <div className="space-y-8">
+                            <LeaderboardTable 
+                                title="Image-to-3D Models"
+                                data={table4ImageData}
+                                columns={[
+                                    { key: 'spatial', label: 'Spatial', subLabel: 'Perceptual' },
+                                    { key: 'temporal', label: 'Temporal', subLabel: 'Perceptual' },
+                                    { key: 'texture', label: 'Texture', subLabel: 'Perceptual' },
+                                    { key: 'scene', label: 'Scene', subLabel: 'Alignment' },
+                                    { key: 'attr', label: 'Attribute', subLabel: 'Alignment' },
+                                    { key: 'rel', label: 'Relation', subLabel: 'Alignment' },
+                                    { key: 'view', label: 'Viewpoint', subLabel: 'Consistency' },
+                                    { key: 'style', label: 'Style', subLabel: 'Consistency' },
+                                    { key: 'overall', label: 'Overall' },
+                                ]}
+                            />
+                            <LeaderboardTable 
+                                title="Text-to-3D Models"
+                                data={table4TextData}
+                                columns={[
+                                    { key: 'spatial', label: 'Spatial', subLabel: 'Perceptual' },
+                                    { key: 'temporal', label: 'Temporal', subLabel: 'Perceptual' },
+                                    { key: 'texture', label: 'Texture', subLabel: 'Perceptual' },
+                                    { key: 'scene', label: 'Scene', subLabel: 'Alignment' },
+                                    { key: 'attr', label: 'Attribute', subLabel: 'Alignment' },
+                                    { key: 'rel', label: 'Relation', subLabel: 'Alignment' },
+                                    { key: 'view', label: 'Viewpoint', subLabel: 'Consistency' },
+                                    { key: 'style', label: 'Style', subLabel: 'Consistency' },
+                                    { key: 'overall', label: 'Overall' },
+                                ]}
+                            />
+                        </div>
+                    )}
+                    </section>
+
+                    {/* Citation */}
+                    <section className="bg-slate-800 text-slate-200 p-8 rounded-xl shadow-inner">
+                    <h3 className="text-xl font-bold mb-4 text-white">Citation</h3>
+                    <pre className="bg-slate-900 p-4 rounded-lg overflow-x-auto text-xs sm:text-sm font-mono leading-relaxed border border-slate-700">
+                        {`@article{4dworldbench,
+  title={4DWorldBench: A Comprehensive Evaluation Framework for 3D/4D World Generation Models},
+  author={4DWorldBench Team},
+  journal={arXiv preprint},
+  year={2025}
+}`}
+                    </pre>
+                    </section>
+
+                    <footer className="text-center text-gray-400 text-sm pt-8 pb-12 border-t border-gray-200">
+                    <p className="mt-2">Inspired by the design of WorldScore.</p>
+                    </footer>
+
+                </div>
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
